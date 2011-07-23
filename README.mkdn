@@ -1,22 +1,27 @@
 # NAME
 
-Plack::App::File::Range - Serve static files with support for Range requests
+Plack::Middleware::Static::Range - Serve static files with support for Range requests
 
 # SYNOPSIS
 
-    use Plack::App::File::Range;
-    my $app = Plack::App::File::Range->new(root => "/path/to/htdocs")->to_app;
+    use Plack::Builder;
+
+    builder {
+        enable 'Static::Range' => (
+            path => qr{^/(images|js|css)/},
+            root => './htdocs/'
+        );
+        $app;
+    };
 
 # DESCRIPTION
 
-This module is a subclass of [Plack::App::File](http://search.cpan.org/perldoc?Plack::App::File) with additional support for
-requests with `Range` headers.
-
-It is used internally by [Plack::Middleware::Static::Range](http://search.cpan.org/perldoc?Plack::Middleware::Static::Range).
+This middleware is a subclass of [Plack::Middleware::Static](http://search.cpan.org/perldoc?Plack::Middleware::Static) with additional
+support for requests with `Range` headers.
 
 # SEE ALSO
 
-[Plack::Middleware::Static::Range](http://search.cpan.org/perldoc?Plack::Middleware::Static::Range), [Plack::App::File](http://search.cpan.org/perldoc?Plack::App::File)
+[Plack::Middleware::Static](http://search.cpan.org/perldoc?Plack::Middleware::Static), [Plack::App::File::Range](http://search.cpan.org/perldoc?Plack::App::File::Range)
 
 # AUTHORS
 
@@ -25,7 +30,7 @@ It is used internally by [Plack::Middleware::Static::Range](http://search.cpan.o
 # CC0 1.0 Universal
 
 To the extent possible under law, 唐鳳 has waived all copyright and related
-or neighboring rights to [Plack::App::File::Range](http://search.cpan.org/perldoc?Plack::App::File::Range).
+or neighboring rights to [Plack::Middleware::Static::Range](http://search.cpan.org/perldoc?Plack::Middleware::Static::Range).
 
 This work is published from Taiwan.
 

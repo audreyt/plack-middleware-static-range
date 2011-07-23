@@ -19,6 +19,8 @@ no_index:
     - inc
     - t
 requires:
+  HTTP::Message: 0
+  PerlIO::subfile: 0
   Plack::Middleware: 0
   parent: 0
   perl: 5.8.1
