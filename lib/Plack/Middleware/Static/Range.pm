@@ -2,8 +2,18 @@ package Plack::Middleware::Static::Range;
 use 5.008001;
 use strict;
 use warnings;
+use Plack::App::File::Range;
 use parent 'Plack::Middleware::Static';
 our $VERSION = '0.01';
+
+sub _handle_static {
+    my ($self, $env) = @_;
+    $self->{file} ||= Plack::App::File::Range->new({
+        root => $self->root || '.',
+        encoding => $self->encoding,
+    });
+    $self->SUPER::_handle_static($env);
+}
 
 1;
 

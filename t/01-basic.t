@@ -48,6 +48,12 @@ my %test = (
             is $res->content, "0123\n";
         }
 
+        {
+            note('all but the first five bytes');
+            my $res = $cb->(GET 'http://localhost/share/foo.txt', Range => 'bytes=5-');
+            is $res->content_type, 'text/plain';
+            is $res->content, "5678\n";
+        }
 
         {
             note('next five bytes');

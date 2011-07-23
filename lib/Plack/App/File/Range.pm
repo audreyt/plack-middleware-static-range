@@ -3,7 +3,79 @@ use 5.008001;
 use strict;
 use warnings;
 use parent 'Plack::App::File';
-our $VERSION = '0.01';
+
+sub serve_path {
+    my ($self, $env, $file) = @_;
+    my $range = $env->{HTTP_RANGE}
+        or return $self->SUPER::serve_path($env, $file);
+
+    $range =~ s/^bytes=//
+        or return $self->return_416;
+
+    my @ranges = split(/\s*,\s*/, $range)
+        or return $self->return_416;
+
+    require PerlIO::subfile;
+
+    my $content_type = $self->content_type || Plack::MIME->mime_type($file) || 'text/plain';
+    if ($content_type =~ m!^text/!) {
+        $content_type .= "; charset=" . ($self->encoding || "utf-8");
+    }
+
+    my @stat = stat $file;
+    my $len = $stat[7];
+
+    if (@ranges == 1) {
+        my ($start, $end) = $self->_parse_range($range, $len)
+            or return $self->return_416;
+
+        open my $fh, "<:raw:subfile(start=$start,end=$end)", $file
+            or return $self->return_403;
+
+        Plack::Util::set_io_path($fh, Cwd::realpath($file));
+
+        $end ||= $len; --$end;
+
+        return [
+            200,
+            [
+                'Content-Type'   => $content_type,
+                'Content-Range'  => "bytes $start-$end/$len",
+                'Last-Modified'  => HTTP::Date::time2str( $stat[9] )
+            ],
+            $fh,
+        ];
+    }
+}
+
+sub _parse_range {
+    my ($self, $range, $len) = @_;
+
+    $range =~ /^(\d*)-(\d*)$/ or return;
+
+    my ($start, $end) = ($1, $2);
+
+    if (length $start and length $end) {
+        return if $start > $end; # "200-100"
+        return if $end >= $len;  # "0-0" on a 0-length file
+        return ($start, $end+1);
+    }
+    elsif (length $start) {
+        return if $start >= $len;  # "0-" on a 0-length file
+        return ($start, 0);
+    }
+    elsif (length $end) {
+        return if $end > $len;  # "-1" on a 0-length file
+        return ($len-$end, 0);
+    }
+
+    return;
+}
+
+sub return_416 {
+    my $self = shift;
+    return [416, ['Content-Type' => 'text/plain', 'Content-Length' => 29], ['Request Range Not Satisfiable']];
+}
 
 1;
 
