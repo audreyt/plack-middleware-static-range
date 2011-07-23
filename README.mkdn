@@ -1,0 +1,32 @@
+# NAME
+
+Plack::App::File::Range - Serve static files with support for Range requests
+
+# SYNOPSIS
+
+    use Plack::App::File::Range;
+    my $app = Plack::App::File::Range->new(root => "/path/to/htdocs")->to_app;
+
+# DESCRIPTION
+
+This module is a subclass of [Plack::App::File](http://search.cpan.org/perldoc?Plack::App::File) with additional support for
+requests with `Range` headers.
+
+It is used internally by [Plack::Middleware::Static::Range](http://search.cpan.org/perldoc?Plack::Middleware::Static::Range).
+
+# SEE ALSO
+
+[Plack::Middleware::Static::Range](http://search.cpan.org/perldoc?Plack::Middleware::Static::Range), [Plack::App::File](http://search.cpan.org/perldoc?Plack::App::File)
+
+# AUTHORS
+
+唐鳳 <cpan@audreyt.org>
+
+# CC0 1.0 Universal
+
+To the extent possible under law, 唐鳳 has waived all copyright and related
+or neighboring rights to [Plack::App::File::Range](http://search.cpan.org/perldoc?Plack::App::File::Range).
+
+This work is published from Taiwan.
+
+[http://creativecommons.org/publicdomain/zero/1.0](http://creativecommons.org/publicdomain/zero/1.0)
