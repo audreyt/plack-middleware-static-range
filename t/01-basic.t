@@ -28,10 +28,58 @@ my %test = (
         }
 
         {
-            note('text file');
+            note('entire file');
             my $res = $cb->(GET 'http://localhost/share/foo.txt');
             is $res->content_type, 'text/plain';
             is $res->content, "0123\n5678\n";
+        }
+
+        {
+            note('first byte');
+            my $res = $cb->(GET 'http://localhost/share/foo.txt', Range => 'bytes=0-0');
+            is $res->content_type, 'text/plain';
+            is $res->content, "0";
+        }
+
+        {
+            note('first five bytes');
+            my $res = $cb->(GET 'http://localhost/share/foo.txt', Range => 'bytes=0-4');
+            is $res->content_type, 'text/plain';
+            is $res->content, "0123\n";
+        }
+
+
+        {
+            note('next five bytes');
+            my $res = $cb->(GET 'http://localhost/share/foo.txt', Range => 'bytes=5-9');
+            is $res->content_type, 'text/plain';
+            is $res->content, "5678\n";
+        }
+
+        {
+            note('last five bytes');
+            my $res = $cb->(GET 'http://localhost/share/foo.txt', Range => 'bytes=-5');
+            is $res->content_type, 'text/plain';
+            is $res->content, "5678\n";
+        }
+
+        {
+            note('last byte');
+            my $res = $cb->(GET 'http://localhost/share/foo.txt', Range => 'bytes=-1');
+            is $res->content_type, 'text/plain';
+            is $res->content, "\n";
+        }
+
+        {
+            note('4th and last byte');
+            my $res = $cb->(GET 'http://localhost/share/foo.txt', Range => 'bytes=4-4,-1');
+            is $res->content_type, 'multipart/byteranges';
+            my @parts = $res->parts;
+            is 0+@parts, 2, "Two byterange parts";
+            for (@parts) {
+                is $_->content_type, "text/plain";
+                is $_->content, "\n";
+            }
         }
 
         {
