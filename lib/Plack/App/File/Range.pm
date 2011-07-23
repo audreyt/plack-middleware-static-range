@@ -15,8 +15,6 @@ sub serve_path {
     my @ranges = split(/\s*,\s*/, $range)
         or return $self->return_416;
 
-    require PerlIO::subfile;
-
     my $content_type = $self->content_type || Plack::MIME->mime_type($file) || 'text/plain';
     if ($content_type =~ m!^text/!) {
         $content_type .= "; charset=" . ($self->encoding || "utf-8");
@@ -29,15 +27,14 @@ sub serve_path {
         my ($start, $end) = $self->_parse_range($range, $len)
             or return $self->return_416;
 
-        open my $fh, "<:raw:subfile(start=$start,end=$end)", $file
+        require PerlIO::subfile;
+        open my $fh, "<:raw:subfile(start=$start,end=".($end+1).")", $file
             or return $self->return_403;
 
         Plack::Util::set_io_path($fh, Cwd::realpath($file));
 
-        $end ||= $len; --$end;
-
         return [
-            200,
+            206,
             [
                 'Content-Type'   => $content_type,
                 'Content-Range'  => "bytes $start-$end/$len",
@@ -46,6 +43,37 @@ sub serve_path {
             $fh,
         ];
     }
+
+    # Multiple ranges:
+    # http://www.w3.org/Protocols/rfc2616/rfc2616-sec19.html#sec19.2
+    open my $fh, "<:raw", $file
+        or return $self->return_403;
+
+    require HTTP::Message;
+    my $msg = HTTP::Message->new([
+        'Content-Type'   => 'multipart/byteranges',
+        'Last-Modified'  => HTTP::Date::time2str( $stat[9] ),
+    ]);
+    my $buf = '';
+    for my $range (@ranges) {
+        my ($start, $end) = $self->_parse_range($range, $len)
+            or return $self->return_416;
+
+        sysseek $fh, $start, 0;
+        sysread $fh, $buf, ($end-$start+1);
+
+        $msg->add_part(HTTP::Message->new(
+            ['Content-Type' => $content_type, 'Content-Range' => "bytes $start-$end/$len"],
+            $buf,
+        ));
+    }
+
+    my $headers = $msg->headers;
+    return [
+        206,
+        [map { ($_ => scalar $headers->header($_)) } $headers->header_field_names],
+        [$msg->content],
+    ];
 }
 
 sub _parse_range {
@@ -58,15 +86,15 @@ sub _parse_range {
     if (length $start and length $end) {
         return if $start > $end; # "200-100"
         return if $end >= $len;  # "0-0" on a 0-length file
-        return ($start, $end+1);
+        return ($start, $end);
     }
     elsif (length $start) {
         return if $start >= $len;  # "0-" on a 0-length file
-        return ($start, 0);
+        return ($start, $len-1);
     }
     elsif (length $end) {
         return if $end > $len;  # "-1" on a 0-length file
-        return ($len-$end, 0);
+        return ($len-$end, $len-1);
     }
 
     return;

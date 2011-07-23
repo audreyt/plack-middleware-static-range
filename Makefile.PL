@@ -4,3 +4,4 @@ all_from 'lib/Plack/Middleware/Static/Range.pm';
 requires 'parent';
 requires 'Plack::Middleware';
 requires 'PerlIO::subfile';
+requires 'HTTP::Message';
